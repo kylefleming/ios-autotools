@@ -21,6 +21,7 @@ if [ "$#" -lt 2 ]; then
 fi
 
 ICONFIGURE="$(dirname $0)/iconfigure"
+LIPO="$(xcrun --find lipo)"
 
 FRAMEWORK=$1
 LIBARCHIVE=$2
@@ -46,8 +47,11 @@ for ARCH in $ARCHS; do
   make install
 done
 
+rm -rf "$FRAMEWORKDIR"
+mkdir -p "$FRAMEWORKDIR/Versions/A"
+
 # Install header files
-PREFIX="$STATICDIR/$ARCH" $ICONFIGURE $ARCH --includedir="$FRAMEWORKDIR/Headers" $@
+PREFIX="$STATICDIR/$ARCH" $ICONFIGURE $ARCH --includedir="$FRAMEWORKDIR/Versions/A/Headers" $@
 make
 make install
 
@@ -55,7 +59,11 @@ make install
 for ARCH in $ARCHS; do
   LIPOARCHS="$LIPOARCHS -arch $ARCH $STATICDIR/$ARCH/lib/$LIBARCHIVE"
 done
-lipo -create -output "$FRAMEWORKDIR/$FRAMEWORK" $LIPOARCHS
+$LIPO -create -output "$FRAMEWORKDIR/Versions/A/$FRAMEWORK" $LIPOARCHS
+
+ln -s Versions/Current/Headers "$FRAMEWORKDIR/Headers"
+ln -s Versions/Current/$FRAMEWORK "$FRAMEWORKDIR/$FRAMEWORK"
+ln -s A "$FRAMEWORKDIR/Versions/Current"
 
 echo "Success!"
 echo "Built $FRAMEWORK for architectures: $ARCHS"
